@@ -1,14 +1,14 @@
-require('dotenv').config();
+
 const express = require('express');
 const axios = require('axios');
-const uuid = require("uuid/v4");
+const {uuid} = require("uuidv4");
 const { mongoClient } = require('./mongo');
 const bodyParser = require('body-parser')
 
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyPrser.json(a));
+app.use(bodyParser.json());
 
 // /*app.post('/orders', async (req,res) => {
 //   const db = await mongoClient();
@@ -86,7 +86,8 @@ app.post("/api/orders", async (req, res) => {
       const amount = req.body.amount;
       const email = req.body.email;
       const product_id = req.body.product_id;
-      const quantity=req.body.quantity;
+      const name=req.body.name;
+      const price=req.body.price;
 
       // 0. call payments microservice
       const { data: paymentsResponse } = await axios.post('https://payment-service.vercel.app/api/payments', {
@@ -103,27 +104,24 @@ app.post("/api/orders", async (req, res) => {
       const order_id = uuid();
       const newOrderDocument = await db.collection("orders").insertOne({
         order_id,
-        name: req.body.name,
-        quantity: req.body.quantity,
-        price: req.body.price,
+        name,
+        price,
       });      
 
     // 2. call /inventory microservice and pass the order_id
-    const { data: inventoryResponse } = await axios.post('https://goweather.herokuapp.com/weather/california/', {
-      product_id,
-      quantity
+    const { data: inventoryResponse } = await axios.post('https://inventory-backend-weld.vercel.app/api/inventory', {
+      product_id  
     });
 
     // 3. call /shipments microservice and pass the order_id
-    const { data: shipmentsResponse } = await axios.post('https://shipping-one.vercel.app/api/shipments/1268', {
-      order_id//,
-      //product_id
+    const { data: shipmentsResponse } = await axios.post('https://shipping-one.vercel.app/api/shipments', {
+      order_id
     });
 
     // 4. call /notifications microservice and pass the order_id
-    const { data: notificationResponse } = await axios.post('https://notification-service.vercel.app/api/notification', {
+    const { data: notificationResponse } = await axios.post('https://finalnotification.vercel.app/api/notification ', {
     email,  
-    text:"Your Product id is "+product_id+ "Your order id is: "+ order_id
+    text:"Your Product id is "+product_id+ "Your order id is: "+ order_id 
     });
 
     return res.status(200).json({
@@ -179,20 +177,12 @@ app.patch("/api/orders/:order_id", async (req, res) => {
         { $set: { order_status: nextShipmentStatus } }
       );
     res.status(200).json({
-      body: nextShipmentStatus,
+      body: nextShipmentStatus,   
       message: "Successfully updated order status",
     });
   } catch (e) {
     console.log("[updateShipment] e", e);
   }
 });
-
-app.listen(process.env.PORT || 5000, async () => {
-  console.log("The server is running")
-  //await connectDB();
-}); 
-
-
-
 
 app.listen(3000);
