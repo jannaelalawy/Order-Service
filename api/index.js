@@ -77,8 +77,14 @@ app.use(bodyParser.json());
   //     res.status(200).send({ body: shipment, message: "Order retrived" });
   //   }
   // }); //zbaty dyy
+  app.all('*', function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+  });
 
-app.post("/api/orders", async (req, res) => {
+app.post("/api/orders", async (req, res) => { 
   try {
     const db = await mongoClient();
     if (!db) res.status(500).json("Systems Unavailable");
